@@ -1,17 +1,22 @@
-select pp.ProductID 
-from Production.Product as pp
-join
-(
-select pp.ProductModelID, MIN(Color) as Color
-from Production.Product as pp
-join 
-(
-select distinct sod.ProductID, soh.CustomerID
-from Sales.SalesOrderDetail as sod
-join Sales.SalesOrderHeader as soh on sod.SalesOrderID = soh.SalesOrderID
-) as res
-on pp.ProductID = res.ProductID AND pp.Color IS NOT NULL
-group by ProductModelID
-having count(distinct Color) = 1
-) as r 
-on pp.ProductModelID = r.ProductModelID AND pp.Color = r.Color 
+select od.ProductID 
+from [Sales].[SalesOrderDetail] as od 
+join [Sales].[SalesOrderHeader] oh on od.SalesOrderID=oh.SalesOrderID 
+where oh.CustomerID in 
+(select oh.CustomerID 
+ from [Production].[Product] as p 
+ join [Sales].[SalesOrderDetail] as od on p.productid=od.ProductID 
+ join [Sales].[SalesOrderHeader] as oh on od.SalesOrderID=oh.SalesOrderID 
+ group by oh.CustomerID 
+ having count(distinct p.Color)=1) and od.ProductID not in 
+ (select od.ProductID 
+  from [Sales].[SalesOrderDetail] as od 
+  join [Sales].[SalesOrderHeader] as oh on od.SalesOrderID=oh.SalesOrderID 
+  where oh.CustomerID in 
+  (select oh.CustomerID 
+   from [Production].[Product] as p 
+   join [Sales].[SalesOrderDetail] as od on p.productid=od.ProductID 
+   join [Sales].[SalesOrderHeader] as oh on od.SalesOrderID=oh.SalesOrderID 
+   group by oh.CustomerID 
+   having count(distinct p.Color)=2)) 
+   group by od.ProductID 
+   having count(distinct oh.CustomerID)>1
